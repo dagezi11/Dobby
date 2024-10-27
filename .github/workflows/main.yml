@@ -1,0 +1,52 @@
+name: Build Dobby for Android
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_NDK_VERSION: r25b
+      CMAKE_VERSION: 3.25.2
+      LLVM_VERSION: 15.0.6
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Set up CMake
+      uses: jwlawson/actions-setup-cmake@v1
+      with:
+        cmake-version: ${{ env.CMAKE_VERSION }}
+
+    - name: Set up Android NDK
+      uses: android/ndk@v1
+      with:
+        ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+
+    - name: Set up LLVM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-${{ env.LLVM_VERSION }} lld-${{ env.LLVM_VERSION }}
+
+    - name: Build Dobby for Android
+      run: |
+        python3 scripts/setup_linux_cross_compile.sh
+        python3 scripts/platform_builder.py \
+          --platform=android \
+          --arch=all \
+          --cmake_dir="/usr/local/bin/cmake" \
+          --llvm_dir="/usr/bin/llvm-${{ env.LLVM_VERSION }}" \
+          --android_ndk_dir="$ANDROID_NDK"
+    
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: Dobby-Android
+        path: build/output  # Replace with actual build output directory
